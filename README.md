@@ -11,10 +11,18 @@ A compact panel docked to the right edge of every page with:
 - **Minimize / Maximize** — collapse the widget to a single button when not needed
 - **Auto-hide** — the widget only appears when the page has scrollable content
 
+<img width="153" height="223" alt="2026-05-27 22-18-18" src="https://github.com/user-attachments/assets/b19b1c07-6179-4a89-b3cf-c6c88f169929" />
+<img width="74" height="70" alt="2026-05-27 22-18-39" src="https://github.com/user-attachments/assets/2746b01c-5953-4c06-a391-710e96ed8f38" />
+
+
+
 ### GitHub Status Monitor
 Fetches [githubstatus.com](https://www.githubstatus.com) on popup open and displays overall status inline. Click to expand a component-by-component breakdown (Actions, API, Pages, Codespaces, etc.) with color-coded badges.
 
+<img width="30%" alt="2026-05-27 22-19-51" src="https://github.com/user-attachments/assets/4c7273ba-1f12-4cd0-b078-c845b3b2f9b8" />
+
 ### Settings Panel
+
 All features are configurable via a collapsible settings panel in the popup:
 
 | Setting | Description |
@@ -30,6 +38,8 @@ The `all.buttons` master toggle has bidirectional logic:
 - Turning it **OFF** disables all sub-toggles (including the minimize button)
 - Turning any sub-toggle **ON** automatically activates the master
 - Turning all sub-toggles **OFF** automatically deactivates the master
+
+<img width="30%" alt="2026-05-27 22-16-51" src="https://github.com/user-attachments/assets/7e596932-2cbe-4235-a8cf-5cbd6f9648ae" />
 
 ## Installation
 
