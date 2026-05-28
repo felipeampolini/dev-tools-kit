@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            width: 240px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            user-select: none;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: #252526;
+            border-bottom: 1px solid #3e3e42;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-prefix {
+            font-size: 12px;
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+
+        .header-title {
+            font-size: 11px;
+            color: #9cdcfe;
+            letter-spacing: 0.4px;
+            flex: 1;
+        }
+
+        .header-version {
+            font-size: 10px;
+            color: #5a5a5a;
+        }
+
+        /* ===== CONTENT ===== */
+        .content {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* ===== ROW ===== */
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .label {
+            font-size: 11px;
+            color: #858585;
+        }
+
+        .label span {
+            color: #9cdcfe;
+        }
+
+        /* ===== TOGGLE SWITCH ===== */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-text {
+            font-size: 10px;
+            min-width: 20px;
+            color: #5a5a5a;
+            text-align: right;
+            transition: color 0.2s;
+        }
+
+        .status-text.on {
+            color: #4ec9b0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            background: #3e3e42;
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+
+        .slider::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            left: 3px;
+            top: 3px;
+            background: #858585;
+            border-radius: 50%;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        input:checked + .slider {
+            background: #0d3d30;
+        }
+
+        input:checked + .slider::before {
+            transform: translateX(20px);
+            background: #4ec9b0;
+            box-shadow: 0 0 6px rgba(78, 201, 176, 0.6);
+        }
+
+        /* ===== DIVIDER ===== */
+        .divider {
+            height: 1px;
+            background: #3e3e42;
+        }
+
+        /* ===== SUB-TOGGLE ===== */
+        .row.sub-toggle {
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .row.sub-toggle::before {
+            content: '└';
+            position: absolute;
+            left: 4px;
+            color: #3e3e42;
+            font-size: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            background: #252526;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
+            text-align: left;
+        }
+
+        .btn:hover {
+            background: #2a2d2e;
+            border-color: #4ec9b0;
+            color: #4ec9b0;
+        }
+
+        .btn:active {
+            background: #0d3d30;
+        }
+
+        .btn-icon {
+            font-size: 13px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .btn-label {
+            flex: 1;
+        }
+
+        .btn-hint {
+            color: #5a5a5a;
+            font-size: 10px;
+        }
+
+        .btn:hover .btn-hint {
+            color: #4ec9b0;
+            opacity: 0.7;
+        }
+
+        /* ===== GITHUB STATUS DOT ===== */
+        .github-dot {
+            font-size: 9px;
+            color: #3e3e42;
+            transition: color 0.3s;
+            flex-shrink: 0;
+        }
+
+        #githubDot[data-status="none"]     { color: #4ec9b0; }
+        #githubDot[data-status="minor"]    { color: #dcdcaa; }
+        #githubDot[data-status="major"]    { color: #ce9178; }
+        #githubDot[data-status="critical"] { color: #f44747; }
+        #githubDot[data-status="error"]    { color: #f44747; }
+
+        /* ===== SETTINGS PANEL ===== */
+        #settingsPanel.open {
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        #settingsPanel .row {
+            margin-bottom: 10px;
+        }
+
+        #settingsPanel .row:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ===== GITHUB DETAILS PANEL ===== */
+        .details-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+            background: #252526;
+            border-radius: 4px;
+        }
+
+        .details-panel.open {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #3e3e42;
+        }
+
+        .details-panel::-webkit-scrollbar { width: 3px; }
+        .details-panel::-webkit-scrollbar-track { background: transparent; }
+        .details-panel::-webkit-scrollbar-thumb { background: #3e3e42; border-radius: 2px; }
+
+        .component-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .component-row:last-child { border-bottom: none; }
+
+        .component-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .component-name {
+            flex: 1;
+            font-size: 10px;
+            color: #858585;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .component-badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid;
+            white-space: nowrap;
+        }
+
+        .badge-ok         { color: #4ec9b0; border-color: #0d3d30; }
+        .badge-degraded   { color: #dcdcaa; border-color: #3d3a10; }
+        .badge-partial    { color: #ce9178; border-color: #3d2010; }
+        .badge-outage     { color: #f44747; border-color: #3d1010; }
+        .badge-maintenance{ color: #858585; border-color: #3e3e42; }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <span class="header-prefix">&gt;_</span>
+        <span class="header-title">dev-tools-kit</span>
+        <span class="header-version">v3.0</span>
+    </div>
+
+    <div class="content">
+
+        <button class="btn" id="settingsBtn">
+            <span class="btn-icon">
+                <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                </svg>
+            </span>
+            <span class="btn-label">settings</span>
+            <span class="btn-hint" id="settingsHint">▾</span>
+        </button>
+
+        <div class="details-panel" id="settingsPanel">
+            <div class="row">
+                <div class="label"><span>float</span>.widget</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="statusText">OFF</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="label"><span>instant</span>.scroll</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="instantStatusText">OFF</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="instantToggleInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="label"><span>github</span>.status</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="githubStatusEnabledText">ON</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="githubStatusEnabledInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="divider" style="margin: 6px 0;"></div>
+
+            <div class="row">
+                <div class="label"><span>all</span>.buttons</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="allButtonsStatusText">ON</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="allButtonsInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="row sub-toggle">
+                <div class="label"><span>scroll</span>.buttons</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="scrollButtonsStatusText">ON</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="scrollButtonsInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="row sub-toggle">
+                <div class="label"><span>print</span>.screen</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="screenshotEnabledText">ON</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="screenshotEnabledInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="btn" id="githubStatusBtn">
+            <span class="btn-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </span>
+            <span class="btn-label" id="githubLabel">github status</span>
+            <span class="github-dot" id="githubDot">●</span>
+            <span class="btn-hint" id="githubHint"></span>
+        </button>
+
+        <div class="details-panel" id="githubDetails"></div>
+
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

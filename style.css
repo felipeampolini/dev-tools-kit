@@ -1,0 +1,93 @@
+/* ===== WIDGET CONTAINER ===== */
+#scrollWidget {
+    position: fixed;
+    bottom: 18px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    z-index: 999999;
+    transition: bottom 0.25s ease;
+}
+
+/* ===== BOTÕES PADRÃO ===== */
+#scrollWidget button {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px 0 0 10px;
+    border: 1px solid #3e3e42;
+    border-right: none;
+    font-size: 18px;
+    cursor: pointer;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Courier New', monospace;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+#scrollWidget button:hover {
+    background: #252526;
+    border-color: #4ec9b0;
+    color: #4ec9b0;
+}
+
+#scrollWidget button:active {
+    background: #0d3d30;
+}
+
+/* ===== BOTÃO MINIMIZAR (menor) ===== */
+#toggleWidget {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px;
+    border-radius: 8px 0 0 8px;
+    color: #5a5a5a;
+    border-color: #2e2e2e;
+}
+
+#toggleWidget:hover {
+    color: #4ec9b0;
+    border-color: #4ec9b0;
+}
+
+/* ===== BOTÃO SCREENSHOT (pequeno) ===== */
+#screenshotWidgetBtn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 15px;
+    border-radius: 8px 0 0 8px;
+    color: #858585;
+    border-color: #2e2e2e;
+}
+
+#screenshotWidgetBtn:hover {
+    color: #4ec9b0;
+    border-color: #4ec9b0;
+}
+
+#screenshotWidgetBtn.flash-success {
+    color: #4ec9b0 !important;
+    border-color: #4ec9b0 !important;
+}
+
+#screenshotWidgetBtn.flash-error {
+    color: #f44747 !important;
+    border-color: #f44747 !important;
+}
+
+/* ===== ESTADO MINIMIZADO ===== */
+#scrollWidget.minimized {
+    bottom: 14px;
+}
+
+#scrollWidget.minimized button:not(#toggleWidget) {
+    display: none;
+}
+
+#scrollWidget.minimized #toggleWidget {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 12px;
+    border-radius: 6px 0 0 6px;
+}
