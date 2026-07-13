@@ -14,17 +14,25 @@ const githubStatusBtn = document.getElementById("githubStatusBtn");
 const githubDot = document.getElementById("githubDot");
 const githubLabel = document.getElementById("githubLabel");
 const githubHint = document.getElementById("githubHint");
+const claudeStatusEnabledInput = document.getElementById("claudeStatusEnabledInput");
+const claudeStatusEnabledText = document.getElementById("claudeStatusEnabledText");
+const claudeStatusBtn = document.getElementById("claudeStatusBtn");
+const claudeDot = document.getElementById("claudeDot");
+const claudeLabel = document.getElementById("claudeLabel");
+const claudeHint = document.getElementById("claudeHint");
 
 // carregar estado
-chrome.storage.sync.get(["enabled", "instantScroll", "githubStatusEnabled", "screenshotEnabled", "scrollButtonsEnabled"], (result) => {
+chrome.storage.sync.get(["enabled", "instantScroll", "githubStatusEnabled", "claudeStatusEnabled", "screenshotEnabled", "scrollButtonsEnabled"], (result) => {
     updateToggle(result.enabled ?? true);
     updateInstantToggle(result.instantScroll ?? false);
     updateGithubStatusEnabled(result.githubStatusEnabled ?? true);
+    updateClaudeStatusEnabled(result.claudeStatusEnabled ?? true);
     updateScrollButtonsEnabled(result.scrollButtonsEnabled ?? true);
     updateScreenshotEnabled(result.screenshotEnabled ?? true);
     syncMasterToggle();
 
     if (result.githubStatusEnabled ?? true) fetchGithubStatus();
+    if (result.claudeStatusEnabled ?? true) fetchClaudeStatus();
 });
 
 // toggle widget
@@ -87,6 +95,27 @@ function updateGithubStatusEnabled(enabled) {
     if (!enabled && detailsOpen) {
         detailsOpen = false;
         githubDetails.classList.remove("open");
+    }
+}
+
+// claude status feature toggle
+claudeStatusEnabledInput.addEventListener("change", () => {
+    const newState = claudeStatusEnabledInput.checked;
+    chrome.storage.sync.set({ claudeStatusEnabled: newState }, () => {
+        updateClaudeStatusEnabled(newState);
+        if (newState) fetchClaudeStatus();
+    });
+});
+
+function updateClaudeStatusEnabled(enabled) {
+    claudeStatusEnabledInput.checked = enabled;
+    claudeStatusEnabledText.textContent = enabled ? "ON" : "OFF";
+    claudeStatusEnabledText.className = "status-text" + (enabled ? " on" : "");
+    claudeStatusBtn.style.display = enabled ? "" : "none";
+    claudeDetails.style.display = enabled ? "" : "none";
+    if (!enabled && claudeDetailsOpen) {
+        claudeDetailsOpen = false;
+        claudeDetails.classList.remove("open");
     }
 }
 
@@ -252,5 +281,88 @@ githubStatusBtn.addEventListener("click", () => {
         toggleDetails();
     } else {
         fetchGithubStatus();
+    }
+});
+
+
+// ======================
+// CLAUDE STATUS
+// ======================
+
+const claudeDetails = document.getElementById("claudeDetails");
+
+let claudeComponents = [];
+let claudeDetailsOpen = false;
+
+async function fetchClaudeStatus() {
+    claudeDot.removeAttribute("data-status");
+    claudeLabel.textContent = "fetching...";
+    claudeHint.textContent = "";
+
+    try {
+        const [statusRes, componentsRes] = await Promise.all([
+            fetch("https://status.anthropic.com/api/v2/status.json"),
+            fetch("https://status.anthropic.com/api/v2/components.json")
+        ]);
+
+        const { status } = await statusRes.json();
+        const { components } = await componentsRes.json();
+
+        claudeComponents = components.filter(c => !c.group);
+
+        claudeDot.setAttribute("data-status", status.indicator);
+        claudeLabel.textContent = status.description.toLowerCase();
+        claudeHint.textContent = "▾";
+
+    } catch {
+        claudeDot.setAttribute("data-status", "error");
+        claudeLabel.textContent = "connection error";
+        claudeHint.textContent = "";
+        claudeComponents = [];
+    }
+}
+
+function toggleClaudeDetails() {
+    if (!claudeComponents.length) return;
+
+    claudeDetailsOpen = !claudeDetailsOpen;
+    claudeHint.textContent = claudeDetailsOpen ? "▴" : "▾";
+
+    if (claudeDetailsOpen) {
+        claudeDetails.innerHTML = "";
+
+        claudeComponents.forEach(c => {
+            const cfg = STATUS_CONFIG[c.status] || { dot: "#5a5a5a", badge: "badge-maintenance", label: c.status };
+
+            const row = document.createElement("div");
+            row.className = "component-row";
+
+            const dot = document.createElement("span");
+            dot.className = "component-dot";
+            dot.style.background = cfg.dot;
+
+            const name = document.createElement("span");
+            name.className = "component-name";
+            name.textContent = c.name.toLowerCase();
+
+            const badge = document.createElement("span");
+            badge.className = `component-badge ${cfg.badge}`;
+            badge.textContent = cfg.label;
+
+            row.appendChild(dot);
+            row.appendChild(name);
+            row.appendChild(badge);
+            claudeDetails.appendChild(row);
+        });
+    }
+
+    claudeDetails.classList.toggle("open", claudeDetailsOpen);
+}
+
+claudeStatusBtn.addEventListener("click", () => {
+    if (claudeComponents.length) {
+        toggleClaudeDetails();
+    } else {
+        fetchClaudeStatus();
     }
 });

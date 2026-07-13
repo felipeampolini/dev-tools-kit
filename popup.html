@@ -216,6 +216,20 @@
         #githubDot[data-status="critical"] { color: #f44747; }
         #githubDot[data-status="error"]    { color: #f44747; }
 
+        /* ===== CLAUDE STATUS DOT ===== */
+        .claude-dot {
+            font-size: 9px;
+            color: #3e3e42;
+            transition: color 0.3s;
+            flex-shrink: 0;
+        }
+
+        #claudeDot[data-status="none"]     { color: #4ec9b0; }
+        #claudeDot[data-status="minor"]    { color: #dcdcaa; }
+        #claudeDot[data-status="major"]    { color: #ce9178; }
+        #claudeDot[data-status="critical"] { color: #f44747; }
+        #claudeDot[data-status="error"]    { color: #f44747; }
+
         /* ===== SETTINGS PANEL ===== */
         #settingsPanel.open {
             padding: 10px;
@@ -345,6 +359,17 @@
                 </div>
             </div>
 
+            <div class="row">
+                <div class="label"><span>claude</span>.status</div>
+                <div class="toggle-wrap">
+                    <span class="status-text" id="claudeStatusEnabledText">ON</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="claudeStatusEnabledInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
             <div class="divider" style="margin: 6px 0;"></div>
 
             <div class="row">
@@ -395,6 +420,19 @@
         </button>
 
         <div class="details-panel" id="githubDetails"></div>
+
+        <button class="btn" id="claudeStatusBtn">
+            <span class="btn-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2c.36 3.02 1.02 5.02 2 6s2.98 1.64 6 2c-3.02.36-5.02 1.02-6 2s-1.64 2.98-2 6c-.36-3.02-1.02-5.02-2-6s-2.98-1.64-6-2c3.02-.36 5.02-1.02 6-2s1.64-2.98 2-6z"/>
+                </svg>
+            </span>
+            <span class="btn-label" id="claudeLabel">claude status</span>
+            <span class="claude-dot" id="claudeDot">●</span>
+            <span class="btn-hint" id="claudeHint"></span>
+        </button>
+
+        <div class="details-panel" id="claudeDetails"></div>
 
     </div>
 
