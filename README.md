@@ -21,6 +21,9 @@ Fetches [githubstatus.com](https://www.githubstatus.com) on popup open and displ
 
 <img width="30%" alt="2026-05-27 22-19-51" src="https://github.com/user-attachments/assets/4c7273ba-1f12-4cd0-b078-c845b3b2f9b8" />
 
+### Claude Status Monitor
+Fetches [status.anthropic.com](https://status.anthropic.com) on popup open and displays Claude's overall status inline. Click to expand a component-by-component breakdown (Claude API, Console, Claude.ai, etc.) with color-coded badges — same look and behavior as the GitHub monitor.
+
 ### Settings Panel
 
 All features are configurable via a collapsible settings panel in the popup:
@@ -30,6 +33,7 @@ All features are configurable via a collapsible settings panel in the popup:
 | `float.widget` | Enable / disable the floating widget entirely |
 | `instant.scroll` | Switch between smooth and instant scroll behavior |
 | `github.status` | Show / hide the GitHub status button |
+| `claude.status` | Show / hide the Claude status button |
 | `all.buttons` | Master toggle for widget action buttons |
 | `scroll.buttons` | Show / hide the scroll ⬆⬇ buttons |
 | `print.screen` | Show / hide the screenshot ⎙ button |
@@ -74,6 +78,7 @@ dev-tools-kit/
 - Chrome Extension Manifest V3
 - Vanilla JS — no dependencies
 - GitHub Status API: `https://www.githubstatus.com/api/v2/`
+- Claude Status API: `https://status.anthropic.com/api/v2/`
 - VS Code dark theme color palette
 
 ## License
