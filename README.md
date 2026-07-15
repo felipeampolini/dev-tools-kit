@@ -16,13 +16,25 @@ A compact panel docked to the right edge of every page with:
 
 
 
-### GitHub Status Monitor
-Fetches [githubstatus.com](https://www.githubstatus.com) on popup open and displays overall status inline. Click to expand a component-by-component breakdown (Actions, API, Pages, Codespaces, etc.) with color-coded badges.
+### Status Monitors
+Each monitor fetches a status page on popup open and displays the overall status inline. Click any monitor to expand a component-by-component breakdown with color-coded badges.
+
+Two monitors ship by default:
+
+- **GitHub** — [githubstatus.com](https://www.githubstatus.com) (Actions, API, Pages, Codespaces, etc.)
+- **Claude** — [status.anthropic.com](https://status.anthropic.com) (Claude API, Console, Claude.ai, etc.)
 
 <img width="30%" alt="2026-05-27 22-19-51" src="https://github.com/user-attachments/assets/4c7273ba-1f12-4cd0-b078-c845b3b2f9b8" />
 
-### Claude Status Monitor
-Fetches [status.anthropic.com](https://status.anthropic.com) on popup open and displays Claude's overall status inline. Click to expand a component-by-component breakdown (Claude API, Console, Claude.ai, etc.) with color-coded badges — same look and behavior as the GitHub monitor.
+#### Add your own monitors
+
+Both defaults use the [Atlassian Statuspage](https://www.atlassian.com/software/statuspage) v2 API — the same format used by hundreds of services (Vercel, Cloudflare, npm, OpenAI, Discord, …). The settings panel has a **`status.monitors`** section where you can add any Statuspage-powered service:
+
+1. Paste the service's status URL — a bare host (`vercel-status.com`), the base URL (`https://www.githubstatus.com`), or even a full API URL all work.
+2. Press **+**. The extension normalizes the URL, does a single `GET` to `/api/v2/summary.json`, and **auto-detects the service name and its components**.
+3. On success it's saved and a new status button appears. Invalid or unreachable URLs are rejected with a message.
+
+Every monitor (built-in or custom) has an **ON/OFF** toggle; custom monitors also have a **×** to remove them. The full list is persisted in `chrome.storage.sync`, so it follows your Chrome profile.
 
 ### Settings Panel
 
@@ -32,8 +44,7 @@ All features are configurable via a collapsible settings panel in the popup:
 |---|---|
 | `float.widget` | Enable / disable the floating widget entirely |
 | `instant.scroll` | Switch between smooth and instant scroll behavior |
-| `github.status` | Show / hide the GitHub status button |
-| `claude.status` | Show / hide the Claude status button |
+| `status.monitors` | Add / remove / toggle status monitors (GitHub, Claude, and any custom Statuspage service) |
 | `all.buttons` | Master toggle for widget action buttons |
 | `scroll.buttons` | Show / hide the scroll ⬆⬇ buttons |
 | `print.screen` | Show / hide the screenshot ⎙ button |
@@ -70,15 +81,14 @@ dev-tools-kit/
 ├── content.js          # Injected script — creates and manages the floating widget
 ├── style.css           # Floating widget styles
 ├── popup.html          # Extension popup UI
-└── popup.js            # Popup logic — settings, GitHub status, toggles
+└── popup.js            # Popup logic — settings, status monitors, toggles
 ```
 
 ## Tech
 
 - Chrome Extension Manifest V3
 - Vanilla JS — no dependencies
-- GitHub Status API: `https://www.githubstatus.com/api/v2/`
-- Claude Status API: `https://status.anthropic.com/api/v2/`
+- Status monitors: [Atlassian Statuspage](https://www.atlassian.com/software/statuspage) v2 API (`/api/v2/summary.json`) — GitHub and Claude ship as defaults; any Statuspage-powered service can be added by URL
 - VS Code dark theme color palette
 
 ## License
