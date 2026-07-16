@@ -218,9 +218,12 @@
         .status-dot[data-status="error"]       { color: #f44747; }
 
         /* ===== SETTINGS PANEL ===== */
+        /* override .details-panel.open (max-height 200 + overflow hidden)
+           so the whole settings panel can scroll instead of clipping */
         #settingsPanel.open {
             padding: 10px;
-            overflow: hidden;
+            max-height: 360px;
+            overflow-y: auto;
         }
 
         #settingsPanel .row {
@@ -297,6 +300,18 @@
             letter-spacing: 0.4px;
             margin-bottom: 8px;
         }
+
+        /* cap the monitor list (~3 rows) and scroll within it, keeping the
+           add-source input reachable no matter how many are added */
+        #statusSourcesList {
+            max-height: 108px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        #statusSourcesList::-webkit-scrollbar { width: 4px; }
+        #statusSourcesList::-webkit-scrollbar-track { background: transparent; }
+        #statusSourcesList::-webkit-scrollbar-thumb { background: #3e3e42; border-radius: 2px; }
 
         .remove-source {
             background: none;
