@@ -2,38 +2,28 @@ const toggleInput = document.getElementById("toggleInput");
 const statusText = document.getElementById("statusText");
 const instantToggleInput = document.getElementById("instantToggleInput");
 const instantStatusText = document.getElementById("instantStatusText");
-const githubStatusEnabledInput = document.getElementById("githubStatusEnabledInput");
-const githubStatusEnabledText = document.getElementById("githubStatusEnabledText");
 const screenshotEnabledInput = document.getElementById("screenshotEnabledInput");
 const screenshotEnabledText = document.getElementById("screenshotEnabledText");
 const scrollButtonsInput = document.getElementById("scrollButtonsInput");
 const scrollButtonsStatusText = document.getElementById("scrollButtonsStatusText");
 const allButtonsInput = document.getElementById("allButtonsInput");
 const allButtonsStatusText = document.getElementById("allButtonsStatusText");
-const githubStatusBtn = document.getElementById("githubStatusBtn");
-const githubDot = document.getElementById("githubDot");
-const githubLabel = document.getElementById("githubLabel");
-const githubHint = document.getElementById("githubHint");
-const claudeStatusEnabledInput = document.getElementById("claudeStatusEnabledInput");
-const claudeStatusEnabledText = document.getElementById("claudeStatusEnabledText");
-const claudeStatusBtn = document.getElementById("claudeStatusBtn");
-const claudeDot = document.getElementById("claudeDot");
-const claudeLabel = document.getElementById("claudeLabel");
-const claudeHint = document.getElementById("claudeHint");
 
 // carregar estado
-chrome.storage.sync.get(["enabled", "instantScroll", "githubStatusEnabled", "claudeStatusEnabled", "screenshotEnabled", "scrollButtonsEnabled"], (result) => {
-    updateToggle(result.enabled ?? true);
-    updateInstantToggle(result.instantScroll ?? false);
-    updateGithubStatusEnabled(result.githubStatusEnabled ?? true);
-    updateClaudeStatusEnabled(result.claudeStatusEnabled ?? true);
-    updateScrollButtonsEnabled(result.scrollButtonsEnabled ?? true);
-    updateScreenshotEnabled(result.screenshotEnabled ?? true);
-    syncMasterToggle();
+chrome.storage.sync.get(
+    ["enabled", "instantScroll", "screenshotEnabled", "scrollButtonsEnabled", "statusSources", "githubStatusEnabled", "claudeStatusEnabled"],
+    (result) => {
+        updateToggle(result.enabled ?? true);
+        updateInstantToggle(result.instantScroll ?? false);
+        updateScrollButtonsEnabled(result.scrollButtonsEnabled ?? true);
+        updateScreenshotEnabled(result.screenshotEnabled ?? true);
+        syncMasterToggle();
 
-    if (result.githubStatusEnabled ?? true) fetchGithubStatus();
-    if (result.claudeStatusEnabled ?? true) fetchClaudeStatus();
-});
+        loadStatusSources(result);
+        renderSourcesSettings();
+        renderStatusButtons();
+    }
+);
 
 // toggle widget
 toggleInput.addEventListener("change", () => {
@@ -75,48 +65,6 @@ function updateInstantToggle(enabled) {
     instantToggleInput.checked = enabled;
     instantStatusText.textContent = enabled ? "ON" : "OFF";
     instantStatusText.className = "status-text" + (enabled ? " on" : "");
-}
-
-// github status feature toggle
-githubStatusEnabledInput.addEventListener("change", () => {
-    const newState = githubStatusEnabledInput.checked;
-    chrome.storage.sync.set({ githubStatusEnabled: newState }, () => {
-        updateGithubStatusEnabled(newState);
-        if (newState) fetchGithubStatus();
-    });
-});
-
-function updateGithubStatusEnabled(enabled) {
-    githubStatusEnabledInput.checked = enabled;
-    githubStatusEnabledText.textContent = enabled ? "ON" : "OFF";
-    githubStatusEnabledText.className = "status-text" + (enabled ? " on" : "");
-    githubStatusBtn.style.display = enabled ? "" : "none";
-    githubDetails.style.display = enabled ? "" : "none";
-    if (!enabled && detailsOpen) {
-        detailsOpen = false;
-        githubDetails.classList.remove("open");
-    }
-}
-
-// claude status feature toggle
-claudeStatusEnabledInput.addEventListener("change", () => {
-    const newState = claudeStatusEnabledInput.checked;
-    chrome.storage.sync.set({ claudeStatusEnabled: newState }, () => {
-        updateClaudeStatusEnabled(newState);
-        if (newState) fetchClaudeStatus();
-    });
-});
-
-function updateClaudeStatusEnabled(enabled) {
-    claudeStatusEnabledInput.checked = enabled;
-    claudeStatusEnabledText.textContent = enabled ? "ON" : "OFF";
-    claudeStatusEnabledText.className = "status-text" + (enabled ? " on" : "");
-    claudeStatusBtn.style.display = enabled ? "" : "none";
-    claudeDetails.style.display = enabled ? "" : "none";
-    if (!enabled && claudeDetailsOpen) {
-        claudeDetailsOpen = false;
-        claudeDetails.classList.remove("open");
-    }
 }
 
 // screenshot feature toggle
@@ -195,60 +143,321 @@ settingsBtn.addEventListener("click", () => {
 
 
 // ======================
-// GITHUB STATUS
+// STATUS SOURCES
 // ======================
+//
+// Every monitor is a "status source" backed by an Atlassian Statuspage v2
+// endpoint (the same format GitHub and Claude expose). A single GET to
+// `{origin}/api/v2/summary.json` returns the page name, overall status and
+// all components — so any Statuspage-powered service can be added by URL.
 
-const githubDetails = document.getElementById("githubDetails");
+const SVG_ICONS = {
+    github: '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>',
+    claude: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2c.36 3.02 1.02 5.02 2 6s2.98 1.64 6 2c-3.02.36-5.02 1.02-6 2s-1.64 2.98-2 6c-.36-3.02-1.02-5.02-2-6s-2.98-1.64-6-2c3.02-.36 5.02-1.02 6-2s1.64-2.98 2-6z"/></svg>',
+    generic: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.7 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.7-3.8-9S9.5 5.5 12 3z"/></svg>',
+};
+
+const DEFAULT_SOURCES = [
+    { id: "github", name: "github", url: "https://www.githubstatus.com", icon: "github", builtin: true, enabled: true },
+    { id: "claude", name: "claude", url: "https://status.anthropic.com", icon: "claude", builtin: true, enabled: true },
+];
 
 const STATUS_CONFIG = {
-    operational:          { dot: "#4ec9b0", badge: "badge-ok",          label: "ok"          },
-    degraded_performance: { dot: "#dcdcaa", badge: "badge-degraded",    label: "degraded"    },
+    operational:          { dot: "#4ec9b0", badge: "badge-ok",           label: "ok"          },
+    degraded_performance: { dot: "#dcdcaa", badge: "badge-degraded",     label: "degraded"    },
     partial_outage:       { dot: "#ce9178", badge: "badge-partial",      label: "partial"     },
     major_outage:         { dot: "#f44747", badge: "badge-outage",       label: "outage"      },
     under_maintenance:    { dot: "#858585", badge: "badge-maintenance",  label: "maintenance" },
 };
 
-let githubComponents = [];
-let detailsOpen = false;
+let statusSources = [];
+// runtime state per source id: { components, open, dot, label, hint, details }
+const sourceState = {};
 
-async function fetchGithubStatus() {
-    githubDot.removeAttribute("data-status");
-    githubLabel.textContent = "fetching...";
-    githubHint.textContent = "";
+const statusSourcesList = document.getElementById("statusSourcesList");
+const statusButtons = document.getElementById("statusButtons");
+const addSourceInput = document.getElementById("addSourceInput");
+const addSourceBtn = document.getElementById("addSourceBtn");
+const addSourceMsg = document.getElementById("addSourceMsg");
 
+function loadStatusSources(result) {
+    if (Array.isArray(result.statusSources) && result.statusSources.length) {
+        statusSources = result.statusSources;
+        return;
+    }
+    // first run / migration: seed the built-in sources, honoring the legacy
+    // github/claude enable flags if the user had set them.
+    statusSources = DEFAULT_SOURCES.map(s => ({ ...s }));
+    if (result.githubStatusEnabled === false) statusSources[0].enabled = false;
+    if (result.claudeStatusEnabled === false) statusSources[1].enabled = false;
+    saveStatusSources();
+}
+
+function saveStatusSources() {
+    chrome.storage.sync.set({ statusSources });
+}
+
+function summaryEndpoint(source) {
+    return source.url.replace(/\/+$/, "") + "/api/v2/summary.json";
+}
+
+// Accept anything the user pastes (bare host, base url, or a full api url)
+// and reduce it to the service origin.
+function normalizeOrigin(input) {
+    let raw = (input || "").trim();
+    if (!raw) return null;
+    if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
     try {
-        const [statusRes, componentsRes] = await Promise.all([
-            fetch("https://www.githubstatus.com/api/v2/status.json"),
-            fetch("https://www.githubstatus.com/api/v2/components.json")
-        ]);
-
-        const { status } = await statusRes.json();
-        const { components } = await componentsRes.json();
-
-        githubComponents = components.filter(c => !c.group);
-
-        githubDot.setAttribute("data-status", status.indicator);
-        githubLabel.textContent = status.description.toLowerCase();
-        githubHint.textContent = "▾";
-
+        return new URL(raw).origin;
     } catch {
-        githubDot.setAttribute("data-status", "error");
-        githubLabel.textContent = "connection error";
-        githubHint.textContent = "";
-        githubComponents = [];
+        return null;
     }
 }
 
-function toggleDetails() {
-    if (!githubComponents.length) return;
+async function fetchSummary(source) {
+    const res = await fetch(summaryEndpoint(source));
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if (!data || !data.status || !Array.isArray(data.components)) {
+        throw new Error("not a statuspage");
+    }
+    return data;
+}
 
-    detailsOpen = !detailsOpen;
-    githubHint.textContent = detailsOpen ? "▴" : "▾";
+function showAddMsg(text, kind) {
+    addSourceMsg.textContent = text;
+    addSourceMsg.className = "add-msg " + (kind || "info");
+}
 
-    if (detailsOpen) {
-        githubDetails.innerHTML = "";
+// -------- add flow --------
 
-        githubComponents.forEach(c => {
+async function addStatusSource() {
+    const origin = normalizeOrigin(addSourceInput.value);
+    if (!origin) {
+        showAddMsg("invalid url", "err");
+        return;
+    }
+    if (statusSources.some(s => s.url.replace(/\/+$/, "") === origin)) {
+        showAddMsg("already added", "err");
+        return;
+    }
+
+    addSourceBtn.disabled = true;
+    showAddMsg("checking…", "info");
+
+    const probe = { url: origin };
+    try {
+        const data = await fetchSummary(probe);
+        const name = ((data.page && data.page.name) ? data.page.name : new URL(origin).host)
+            .toLowerCase();
+        const componentCount = data.components.filter(c => !c.group).length;
+
+        const source = {
+            id: "src_" + Date.now().toString(36),
+            name,
+            url: origin,
+            icon: "generic",
+            builtin: false,
+            enabled: true,
+        };
+        statusSources.push(source);
+        saveStatusSources();
+
+        renderSourcesSettings();
+        renderStatusButtons();
+
+        addSourceInput.value = "";
+        showAddMsg(`added ${name} · ${componentCount} components`, "ok");
+    } catch {
+        showAddMsg("not a valid status api (expects statuspage v2)", "err");
+    } finally {
+        addSourceBtn.disabled = false;
+    }
+}
+
+addSourceBtn.addEventListener("click", addStatusSource);
+addSourceInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addStatusSource();
+});
+
+function removeStatusSource(id) {
+    statusSources = statusSources.filter(s => s.id !== id);
+    delete sourceState[id];
+    saveStatusSources();
+    renderSourcesSettings();
+    renderStatusButtons();
+}
+
+function setSourceEnabled(id, enabled) {
+    const source = statusSources.find(s => s.id === id);
+    if (!source) return;
+    source.enabled = enabled;
+    saveStatusSources();
+    renderStatusButtons();
+}
+
+// -------- settings list rendering --------
+
+function renderSourcesSettings() {
+    statusSourcesList.innerHTML = "";
+
+    statusSources.forEach(source => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const label = document.createElement("div");
+        label.className = "label";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = source.name;
+        label.appendChild(nameSpan);
+        label.appendChild(document.createTextNode(".status"));
+
+        const wrap = document.createElement("div");
+        wrap.className = "toggle-wrap";
+
+        const stateText = document.createElement("span");
+        stateText.className = "status-text" + (source.enabled ? " on" : "");
+        stateText.textContent = source.enabled ? "ON" : "OFF";
+
+        const sw = document.createElement("label");
+        sw.className = "toggle-switch";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = source.enabled;
+        const slider = document.createElement("span");
+        slider.className = "slider";
+        sw.appendChild(input);
+        sw.appendChild(slider);
+
+        input.addEventListener("change", () => {
+            stateText.textContent = input.checked ? "ON" : "OFF";
+            stateText.className = "status-text" + (input.checked ? " on" : "");
+            setSourceEnabled(source.id, input.checked);
+        });
+
+        wrap.appendChild(stateText);
+        wrap.appendChild(sw);
+
+        if (!source.builtin) {
+            const remove = document.createElement("button");
+            remove.className = "remove-source";
+            remove.textContent = "×";
+            remove.title = "remove " + source.name;
+            remove.addEventListener("click", () => removeStatusSource(source.id));
+            wrap.appendChild(remove);
+        }
+
+        row.appendChild(label);
+        row.appendChild(wrap);
+        statusSourcesList.appendChild(row);
+    });
+}
+
+// -------- status buttons rendering --------
+
+function renderStatusButtons() {
+    statusButtons.innerHTML = "";
+
+    const enabled = statusSources.filter(s => s.enabled);
+
+    // once 3+ monitors are visible, cap the list height and let it scroll
+    statusButtons.classList.toggle("scrollable", enabled.length >= 3);
+
+    enabled.forEach(source => {
+        const item = document.createElement("div");
+        item.className = "status-item";
+
+        const btn = document.createElement("button");
+        btn.className = "btn";
+
+        const icon = document.createElement("span");
+        icon.className = "btn-icon";
+        icon.innerHTML = SVG_ICONS[source.icon] || SVG_ICONS.generic;
+
+        const label = document.createElement("span");
+        label.className = "btn-label";
+        label.textContent = source.name + " status";
+
+        const dot = document.createElement("span");
+        dot.className = "status-dot";
+        dot.textContent = "●";
+
+        const hint = document.createElement("span");
+        hint.className = "btn-hint";
+
+        btn.appendChild(icon);
+        btn.appendChild(label);
+        btn.appendChild(dot);
+        btn.appendChild(hint);
+
+        // custom monitors get an inline delete affordance
+        if (!source.builtin) {
+            const del = document.createElement("span");
+            del.className = "status-del";
+            del.textContent = "×";
+            del.title = "delete " + source.name;
+            del.addEventListener("click", (e) => {
+                e.stopPropagation();
+                removeStatusSource(source.id);
+            });
+            btn.appendChild(del);
+        }
+
+        const details = document.createElement("div");
+        details.className = "details-panel";
+
+        const state = { components: [], open: false, dot, label, hint, details };
+        sourceState[source.id] = state;
+
+        btn.addEventListener("click", () => {
+            if (state.components.length) {
+                toggleDetails(source.id);
+            } else {
+                fetchSourceStatus(source);
+            }
+        });
+
+        item.appendChild(btn);
+        item.appendChild(details);
+        statusButtons.appendChild(item);
+
+        fetchSourceStatus(source);
+    });
+}
+
+async function fetchSourceStatus(source) {
+    const state = sourceState[source.id];
+    if (!state) return;
+
+    state.dot.removeAttribute("data-status");
+    state.label.textContent = "fetching…";
+    state.hint.textContent = "";
+
+    try {
+        const data = await fetchSummary(source);
+        state.components = data.components.filter(c => !c.group);
+        state.dot.setAttribute("data-status", data.status.indicator);
+        state.label.textContent = data.status.description.toLowerCase();
+        state.hint.textContent = state.components.length ? "▾" : "";
+    } catch {
+        state.dot.setAttribute("data-status", "error");
+        state.label.textContent = "connection error";
+        state.hint.textContent = "";
+        state.components = [];
+    }
+}
+
+function toggleDetails(id) {
+    const state = sourceState[id];
+    if (!state || !state.components.length) return;
+
+    state.open = !state.open;
+    state.hint.textContent = state.open ? "▴" : "▾";
+
+    if (state.open) {
+        state.details.innerHTML = "";
+
+        state.components.forEach(c => {
             const cfg = STATUS_CONFIG[c.status] || { dot: "#5a5a5a", badge: "badge-maintenance", label: c.status };
 
             const row = document.createElement("div");
@@ -269,100 +478,9 @@ function toggleDetails() {
             row.appendChild(dot);
             row.appendChild(name);
             row.appendChild(badge);
-            githubDetails.appendChild(row);
+            state.details.appendChild(row);
         });
     }
 
-    githubDetails.classList.toggle("open", detailsOpen);
+    state.details.classList.toggle("open", state.open);
 }
-
-githubStatusBtn.addEventListener("click", () => {
-    if (githubComponents.length) {
-        toggleDetails();
-    } else {
-        fetchGithubStatus();
-    }
-});
-
-
-// ======================
-// CLAUDE STATUS
-// ======================
-
-const claudeDetails = document.getElementById("claudeDetails");
-
-let claudeComponents = [];
-let claudeDetailsOpen = false;
-
-async function fetchClaudeStatus() {
-    claudeDot.removeAttribute("data-status");
-    claudeLabel.textContent = "fetching...";
-    claudeHint.textContent = "";
-
-    try {
-        const [statusRes, componentsRes] = await Promise.all([
-            fetch("https://status.anthropic.com/api/v2/status.json"),
-            fetch("https://status.anthropic.com/api/v2/components.json")
-        ]);
-
-        const { status } = await statusRes.json();
-        const { components } = await componentsRes.json();
-
-        claudeComponents = components.filter(c => !c.group);
-
-        claudeDot.setAttribute("data-status", status.indicator);
-        claudeLabel.textContent = status.description.toLowerCase();
-        claudeHint.textContent = "▾";
-
-    } catch {
-        claudeDot.setAttribute("data-status", "error");
-        claudeLabel.textContent = "connection error";
-        claudeHint.textContent = "";
-        claudeComponents = [];
-    }
-}
-
-function toggleClaudeDetails() {
-    if (!claudeComponents.length) return;
-
-    claudeDetailsOpen = !claudeDetailsOpen;
-    claudeHint.textContent = claudeDetailsOpen ? "▴" : "▾";
-
-    if (claudeDetailsOpen) {
-        claudeDetails.innerHTML = "";
-
-        claudeComponents.forEach(c => {
-            const cfg = STATUS_CONFIG[c.status] || { dot: "#5a5a5a", badge: "badge-maintenance", label: c.status };
-
-            const row = document.createElement("div");
-            row.className = "component-row";
-
-            const dot = document.createElement("span");
-            dot.className = "component-dot";
-            dot.style.background = cfg.dot;
-
-            const name = document.createElement("span");
-            name.className = "component-name";
-            name.textContent = c.name.toLowerCase();
-
-            const badge = document.createElement("span");
-            badge.className = `component-badge ${cfg.badge}`;
-            badge.textContent = cfg.label;
-
-            row.appendChild(dot);
-            row.appendChild(name);
-            row.appendChild(badge);
-            claudeDetails.appendChild(row);
-        });
-    }
-
-    claudeDetails.classList.toggle("open", claudeDetailsOpen);
-}
-
-claudeStatusBtn.addEventListener("click", () => {
-    if (claudeComponents.length) {
-        toggleClaudeDetails();
-    } else {
-        fetchClaudeStatus();
-    }
-});
