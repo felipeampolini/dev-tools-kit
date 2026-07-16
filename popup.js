@@ -359,7 +359,14 @@ function renderStatusButtons() {
     statusButtons.innerHTML = "";
 
     const enabled = statusSources.filter(s => s.enabled);
+
+    // once 3+ monitors are visible, cap the list height and let it scroll
+    statusButtons.classList.toggle("scrollable", enabled.length >= 3);
+
     enabled.forEach(source => {
+        const item = document.createElement("div");
+        item.className = "status-item";
+
         const btn = document.createElement("button");
         btn.className = "btn";
 
@@ -383,6 +390,19 @@ function renderStatusButtons() {
         btn.appendChild(dot);
         btn.appendChild(hint);
 
+        // custom monitors get an inline delete affordance
+        if (!source.builtin) {
+            const del = document.createElement("span");
+            del.className = "status-del";
+            del.textContent = "×";
+            del.title = "delete " + source.name;
+            del.addEventListener("click", (e) => {
+                e.stopPropagation();
+                removeStatusSource(source.id);
+            });
+            btn.appendChild(del);
+        }
+
         const details = document.createElement("div");
         details.className = "details-panel";
 
@@ -397,8 +417,9 @@ function renderStatusButtons() {
             }
         });
 
-        statusButtons.appendChild(btn);
-        statusButtons.appendChild(details);
+        item.appendChild(btn);
+        item.appendChild(details);
+        statusButtons.appendChild(item);
 
         fetchSourceStatus(source);
     });

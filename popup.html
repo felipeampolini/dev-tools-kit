@@ -377,6 +377,39 @@
         .add-msg.ok  { color: #4ec9b0; }
         .add-msg.err { color: #f44747; }
         .add-msg.info { color: #858585; }
+
+        /* ===== STATUS BUTTONS LIST ===== */
+        #statusButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* when 3+ monitors are shown, cap the height and scroll */
+        #statusButtons.scrollable {
+            max-height: 176px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        #statusButtons.scrollable::-webkit-scrollbar { width: 4px; }
+        #statusButtons.scrollable::-webkit-scrollbar-track { background: transparent; }
+        #statusButtons.scrollable::-webkit-scrollbar-thumb { background: #3e3e42; border-radius: 2px; }
+
+        /* keep a monitor's button glued to its own details panel */
+        .status-item .details-panel { margin-top: 0; }
+
+        /* per-monitor delete (custom sources only) */
+        .status-del {
+            font-size: 13px;
+            line-height: 1;
+            color: #5a5a5a;
+            padding: 0 2px;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+
+        .status-del:hover { color: #f44747; }
     </style>
 </head>
 
