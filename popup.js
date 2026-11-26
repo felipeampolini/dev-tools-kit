@@ -22,11 +22,12 @@ const claudeLabel = document.getElementById("claudeLabel");
 const claudeHint = document.getElementById("claudeHint");
 
 // carregar estado
-chrome.storage.sync.get(["enabled", "instantScroll", "githubStatusEnabled", "claudeStatusEnabled", "screenshotEnabled", "scrollButtonsEnabled"], (result) => {
+chrome.storage.sync.get(["enabled", "instantScroll", "githubStatusEnabled", "claudeStatusEnabled", "colorPickerEnabled", "screenshotEnabled", "scrollButtonsEnabled"], (result) => {
     updateToggle(result.enabled ?? true);
     updateInstantToggle(result.instantScroll ?? false);
     updateGithubStatusEnabled(result.githubStatusEnabled ?? true);
     updateClaudeStatusEnabled(result.claudeStatusEnabled ?? true);
+    updateColorPickerEnabled(result.colorPickerEnabled ?? true);
     updateScrollButtonsEnabled(result.scrollButtonsEnabled ?? true);
     updateScreenshotEnabled(result.screenshotEnabled ?? true);
     syncMasterToggle();
@@ -365,4 +366,211 @@ claudeStatusBtn.addEventListener("click", () => {
     } else {
         fetchClaudeStatus();
     }
+});
+
+
+// ======================
+// COLOR PICKER
+// ======================
+
+const colorPickerEnabledInput = document.getElementById("colorPickerEnabledInput");
+const colorPickerEnabledText = document.getElementById("colorPickerEnabledText");
+const colorDivider = document.getElementById("colorDivider");
+const colorPickerBtn = document.getElementById("colorPickerBtn");
+const colorChip = document.getElementById("colorChip");
+const colorHint = document.getElementById("colorHint");
+const colorPanel = document.getElementById("colorPanel");
+const colorSwatch = document.getElementById("colorSwatch");
+const colorInput = document.getElementById("colorInput");
+const pickFromPageBtn = document.getElementById("pickFromPageBtn");
+const fmtHex = document.getElementById("fmtHex");
+const fmtRgb = document.getElementById("fmtRgb");
+const fmtHsl = document.getElementById("fmtHsl");
+const colorHistoryEl = document.getElementById("colorHistory");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const colorMsg = document.getElementById("colorMsg");
+
+const COLOR_HISTORY_MAX = 16;
+const DEFAULT_COLOR = "#4ec9b0";
+
+let colorPanelOpen = false;
+let colorHistory = [];
+
+// feature toggle
+colorPickerEnabledInput.addEventListener("change", () => {
+    const newState = colorPickerEnabledInput.checked;
+    chrome.storage.sync.set({ colorPickerEnabled: newState }, () => updateColorPickerEnabled(newState));
+});
+
+function updateColorPickerEnabled(enabled) {
+    colorPickerEnabledInput.checked = enabled;
+    colorPickerEnabledText.textContent = enabled ? "ON" : "OFF";
+    colorPickerEnabledText.className = "status-text" + (enabled ? " on" : "");
+    colorPickerBtn.style.display = enabled ? "" : "none";
+    colorPanel.style.display = enabled ? "" : "none";
+    colorDivider.style.display = enabled ? "" : "none";
+    if (!enabled && colorPanelOpen) {
+        colorPanelOpen = false;
+        colorHint.textContent = "▾";
+        colorPanel.classList.remove("open");
+    }
+}
+
+// abrir / fechar painel
+colorPickerBtn.addEventListener("click", () => {
+    colorPanelOpen = !colorPanelOpen;
+    colorHint.textContent = colorPanelOpen ? "▴" : "▾";
+    colorPanel.classList.toggle("open", colorPanelOpen);
+});
+
+// carregar cor atual + histórico (a página salva aqui após o conta-gotas)
+chrome.storage.local.get(["currentColor", "colorHistory"], (result) => {
+    colorHistory = result.colorHistory ?? [];
+    setColor(result.currentColor ?? DEFAULT_COLOR);
+    renderColorHistory();
+});
+
+// conversões
+function normalizeHex(value) {
+    let v = value.trim().replace(/^#/, "").toLowerCase();
+    if (/^[0-9a-f]{3}$/.test(v)) v = v.split("").map(c => c + c).join("");
+    return /^[0-9a-f]{6}$/.test(v) ? "#" + v : null;
+}
+
+function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHsl({ r, g, b }) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
+
+    if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h *= 60;
+    }
+
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+// atualiza UI com a cor (não mexe no input hex enquanto o usuário digita nele)
+function setColor(hex, { fromHexInput = false } = {}) {
+    const rgb = hexToRgb(hex);
+    const hsl = rgbToHsl(rgb);
+
+    colorInput.value = hex;
+    colorSwatch.style.background = hex;
+    colorChip.style.background = hex;
+    if (!fromHexInput) fmtHex.value = hex;
+    fmtHex.classList.remove("invalid");
+    fmtRgb.textContent = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    fmtHsl.textContent = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+}
+
+function commitColor(hex) {
+    colorHistory = [hex, ...colorHistory.filter(c => c !== hex)].slice(0, COLOR_HISTORY_MAX);
+    chrome.storage.local.set({ currentColor: hex, colorHistory });
+    renderColorHistory();
+}
+
+function renderColorHistory() {
+    colorHistoryEl.innerHTML = "";
+
+    if (!colorHistory.length) {
+        const empty = document.createElement("span");
+        empty.className = "history-empty";
+        empty.textContent = "no colors yet";
+        colorHistoryEl.appendChild(empty);
+        return;
+    }
+
+    colorHistory.forEach(hex => {
+        const sw = document.createElement("button");
+        sw.className = "history-swatch";
+        sw.style.background = hex;
+        sw.title = hex;
+        sw.addEventListener("click", () => {
+            setColor(hex);
+            chrome.storage.local.set({ currentColor: hex });
+        });
+        colorHistoryEl.appendChild(sw);
+    });
+}
+
+// seletor nativo: "input" atualiza ao vivo, "change" salva no histórico
+colorInput.addEventListener("input", () => setColor(colorInput.value));
+colorInput.addEventListener("change", () => commitColor(colorInput.value));
+
+// digitar/colar hex
+fmtHex.addEventListener("input", () => {
+    const hex = normalizeHex(fmtHex.value);
+    if (hex) setColor(hex, { fromHexInput: true });
+    else fmtHex.classList.add("invalid");
+});
+
+fmtHex.addEventListener("change", () => {
+    const hex = normalizeHex(fmtHex.value);
+    if (hex) {
+        setColor(hex);
+        commitColor(hex);
+    }
+});
+
+fmtHex.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") fmtHex.blur();
+});
+
+// copiar formatos
+document.querySelectorAll(".copy-btn[data-copy]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+        const el = document.getElementById(btn.dataset.copy);
+        const text = el.value ?? el.textContent;
+        try {
+            await navigator.clipboard.writeText(text);
+            btn.textContent = "copied";
+            btn.classList.add("copied");
+        } catch {
+            btn.textContent = "error";
+        }
+        setTimeout(() => {
+            btn.textContent = "copy";
+            btn.classList.remove("copied");
+        }, 1200);
+    });
+});
+
+clearHistoryBtn.addEventListener("click", () => {
+    colorHistory = [];
+    chrome.storage.local.set({ colorHistory });
+    renderColorHistory();
+});
+
+// conta-gotas: o content script captura a aba e mostra a lupa; o popup fecha
+pickFromPageBtn.addEventListener("click", () => {
+    colorMsg.textContent = "";
+
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (!tab) return;
+
+        chrome.tabs.sendMessage(tab.id, { action: "startColorPick" }, (res) => {
+            if (chrome.runtime.lastError || !res) {
+                colorMsg.textContent = "unavailable on this page — try reloading it";
+                return;
+            }
+            if (res.error) {
+                colorMsg.textContent = "capture failed: " + res.error;
+                return;
+            }
+            window.close();
+        });
+    });
 });

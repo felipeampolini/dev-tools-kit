@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "dev-tools-kit",
-    "description": "Developer toolkit: floating scroll widget, screenshot capture, and GitHub & Claude status monitors.",
+    "description": "Developer toolkit: floating scroll widget, screenshot capture, color picker, and GitHub & Claude status monitors.",
     "version": "0.1",
     "background": {
         "service_worker": "background.js"
@@ -37,7 +37,8 @@
                 "<all_urls>"
             ],
             "js": [
-                "content.js"
+                "content.js",
+                "colorpicker.js"
             ],
             "css": [
                 "style.css"

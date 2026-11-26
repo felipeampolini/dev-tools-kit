@@ -24,6 +24,13 @@ Fetches [githubstatus.com](https://www.githubstatus.com) on popup open and displ
 ### Claude Status Monitor
 Fetches [status.anthropic.com](https://status.anthropic.com) on popup open and displays Claude's overall status inline. Click to expand a component-by-component breakdown (Claude API, Console, Claude.ai, etc.) with color-coded badges — same look and behavior as the GitHub monitor.
 
+### Color Picker
+A color tool in the popup with:
+- **Pick from page** — closes the popup and turns the cursor into an eyedropper with a magnifier loupe; click any pixel to copy its HEX to the clipboard (`Esc` or right-click cancels)
+- **Native picker** — click the swatch to choose a color manually, or type/paste a HEX value (`#abc` or `#aabbcc`)
+- **Formats** — HEX, RGB and HSL, each with one-click copy
+- **History** — the last 16 colors, saved locally; click a swatch to reload it
+
 ### Settings Panel
 
 All features are configurable via a collapsible settings panel in the popup:
@@ -34,6 +41,7 @@ All features are configurable via a collapsible settings panel in the popup:
 | `instant.scroll` | Switch between smooth and instant scroll behavior |
 | `github.status` | Show / hide the GitHub status button |
 | `claude.status` | Show / hide the Claude status button |
+| `color.picker` | Show / hide the color picker |
 | `all.buttons` | Master toggle for widget action buttons |
 | `scroll.buttons` | Show / hide the scroll ⬆⬇ buttons |
 | `print.screen` | Show / hide the screenshot ⎙ button |
@@ -68,9 +76,10 @@ dev-tools-kit/
 ├── manifest.json       # Extension manifest (MV3)
 ├── background.js       # Service worker — handles tab screenshot capture
 ├── content.js          # Injected script — creates and manages the floating widget
+├── colorpicker.js      # Injected script — page eyedropper overlay for the color picker
 ├── style.css           # Floating widget styles
 ├── popup.html          # Extension popup UI
-└── popup.js            # Popup logic — settings, GitHub status, toggles
+└── popup.js            # Popup logic — settings, status monitors, color picker, toggles
 ```
 
 ## Tech
